@@ -10,16 +10,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+/**
+ * Wrap the KafkaConsumer in a facade that reduces API
+ * surface a bit, with presets suitable for event sourcing.
+ */
 public class KafkaConsumer {
+
+    public enum AutoOffsetReset {
+        smallest,
+        largest
+    }
 
     private ConsumerConnector _connector;
     public KafkaStream<byte[], byte[]> stream;
 
-    public KafkaConsumer(String topic, String group) {
+    public KafkaConsumer(String topic, String group, AutoOffsetReset reset) {
 
-        _connector = Consumer.createJavaConsumerConnector(makeConfig(group));
+        _connector = Consumer.createJavaConsumerConnector(makeConfig(group, reset));
 
-        // Extremely verbose way of saying our only topic should have one thread
+        // The code below is an extremely verbose way of saying our only topic should have one thread.
+        // I *think* that it shouldn't be a problem to add more threads, but it requires
+        // some serious thinking to make sure we're doing things right, and since a projection
+        // is limited to consuming one message at a time (because it cares about ordering) anyway,
+        // I imagine the performance gains to very limited for that case. For consumer groups that don't care about
+        // ordering, attaching multiple sockets on the same event should work fine in the current solution.
         Map<String, Integer> topicCountMap = new HashMap<>();
         topicCountMap.put(topic, 1);
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap =
@@ -32,24 +46,27 @@ public class KafkaConsumer {
     }
 
     public void commitOffsets() {
-        Boolean retryOnFailure = true;
+        Boolean retryOnFailure = false;
         _connector.commitOffsets(retryOnFailure);
     }
 
-    private ConsumerConfig makeConfig(String group) {
+    private ConsumerConfig makeConfig(String group, AutoOffsetReset reset) {
 
         final Properties props = new Properties();
         props.put("zookeeper.connect", "192.168.99.100:49157");
         props.put("group.id", group);
-        props.put("zookeeper.session.timeout.ms", "400");
-        props.put("zookeeper.sync.time.ms", "200");
-        //props.put("consumer.timeout.ms", "10");
-        props.put("auto.commit.interval.ms", "1000");
-        props.put("auto.offset.reset", "smallest");
 
-        // Use kafka for offset storage instead of slow zookeeper
+        // this property determines if the consumer starts from
+        // the head (beginning of log) or the tail (at the end, listening only for new)
+        props.put("auto.offset.reset", reset.toString());
+
+        // Use kafka for offset storage instead of slow zookeeper.
+        // New feature in 0.8.2
         // http://stackoverflow.com/q/30005390/304262
         props.put("offsets.storage", "kafka");
+
+        // Boiler Bay always requires manual commits
+        props.put("auto.commit.enable", "false");
 
         return new ConsumerConfig(props);
     }

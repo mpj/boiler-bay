@@ -6,20 +6,23 @@ import java.net.Socket;
 
 public class SocketServer {
 
-    private ServerSocket server;
+    private ServerSocket _server;
 
+    /**
+     * listen on a port for socket connections. Whenever one is connected,
+     * start a worker on a new thread and pass the socket connection into it.
+     */
     public void listen() {
         try {
-            server = new ServerSocket(4444);
+            _server = new ServerSocket(4444);
         } catch (IOException e) {
             System.out.println("SockerServer Error: Could not listen on port.");
             System.exit(-1);
         }
-        while(true){
-
+        while(true) {
             try {
                 System.out.println("Waiting for connection ...");
-                final Socket socket = server.accept();
+                final Socket socket = _server.accept();
 
                 SocketWorker worker = new SocketWorker(socket);
                 Thread thread = new Thread(worker);
@@ -27,12 +30,10 @@ public class SocketServer {
 
             } catch (IOException e) {
                 System.out.println("SocketServer Error: Socket accept failed.");
-                System.exit(-1);
             }
         }
     }
 
-    /* creating new server and call it's listen method */
     public static void main(String[] args) {
         new SocketServer().listen();
     }

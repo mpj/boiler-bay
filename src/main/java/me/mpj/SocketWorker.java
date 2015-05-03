@@ -23,24 +23,53 @@ public class SocketWorker implements Runnable {
             e.printStackTrace();
             return;
         }
+
         final InputStreamReader streamReader = new InputStreamReader(inputStream);
         BufferedReader br = new BufferedReader(streamReader);
-        // readLine blocks until line arrives or socket closes, upon which it returns null
+
         String line;
         try {
+            // readLine blocks until line arrives or socket closes, upon which it returns null
             while ((line = br.readLine()) != null) {
-                System.out.println(line);
-                consume(line);
-                next(line);
+
+                // Handle: consume
+                Pattern consumePattern = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)\\s([a-z]+)");
+                Matcher consumeMatcher = consumePattern.matcher(line.trim());
+                if (consumeMatcher.find()) {
+                    final String topic = consumeMatcher.group(1);
+                    final String group = consumeMatcher.group(2);
+                    final KafkaConsumer.AutoOffsetReset reset = KafkaConsumer.AutoOffsetReset.valueOf(consumeMatcher.group(3));
+                    _consumer = new KafkaConsumer(topic, group, reset);
+                    sendLine("consume-started");
+                }
+
+                // Handle: next
+                else if (line.trim().equals("next")){
+                    final String msg = new String(_consumer.stream.iterator().next().message());
+                    sendLine("msg " + msg);
+                }
+
+                // Handle: commit
+                else if (line.trim().equals("commit")){
+                    _consumer.commitOffsets();
+                    sendLine("commit-ok");
+                }
+
+                else {
+                    sendLine("command-invalid");
+                }
+
             }
         } catch (IOException e) {
             System.out.println("SocketWorker error: Could not read line.");
             e.printStackTrace();
         }
 
-        System.out.println("Shutting down thread.");
+        // If we reach this line, it means that the socket has
+        // has closed, so shut down the consumer.
         _consumer.shutdown();
 
+        // Finally, ensure that socket is closed.
         try {
             if (!_socket.isClosed()) _socket.close();
         } catch (IOException e) {
@@ -49,33 +78,15 @@ public class SocketWorker implements Runnable {
 
     }
 
-    private void consume(String line) {
-        // consume
-        Pattern p = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)");
-        Matcher m = p.matcher(line.trim());
-
-        if (m.find()) {
-            String topic = m.group(1);
-            String group = m.group(2);
-            _consumer = new KafkaConsumer(topic, group);
-            System.out.println("Consumer initialized");
+    private void sendLine(String line) {
+        try {
+            Boolean autoFlush = true;
+            PrintWriter out = new PrintWriter(_socket.getOutputStream(), autoFlush);
+            out.println(line);
+        } catch (IOException e) {
+            System.out.println("SocketWorker Error: Unable to send message on socket");
+            e.printStackTrace();
         }
-    }
 
-    private void next(String line) {
-        if (line.trim().equals("next")){
-            try {
-                // .hasNext is blocking and is really only used to detect when the
-                // consumer is shutdown so that we can exit cleanly. Don't know why the consumer would shut down?
-
-                final String msg = new String(_consumer.stream.iterator().next().message());
-                Boolean autoFlush = true;
-                PrintWriter out =
-                        new PrintWriter(_socket.getOutputStream(), autoFlush);
-                out.println("msg " + msg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 }
