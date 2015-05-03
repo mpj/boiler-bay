@@ -12,7 +12,7 @@ public class SocketServer {
         try {
             server = new ServerSocket(4444);
         } catch (IOException e) {
-            System.out.println("Error: Could not listen on port.");
+            System.out.println("SockerServer Error: Could not listen on port.");
             System.exit(-1);
         }
         while(true){
@@ -26,7 +26,7 @@ public class SocketServer {
                 thread.start();
 
             } catch (IOException e) {
-                System.out.println("Error: Socket accept failed.");
+                System.out.println("SocketServer Error: Socket accept failed.");
                 System.exit(-1);
             }
         }
