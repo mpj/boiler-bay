@@ -2,12 +2,14 @@ package me.mpj;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SocketWorker implements Runnable {
     private Socket _socket;
     private KafkaConsumer _consumer = null;
+    private KafkaProducer _producer = null;
 
     public SocketWorker(Socket socket) {
         _socket = socket;
@@ -32,9 +34,14 @@ public class SocketWorker implements Runnable {
             // readLine blocks until line arrives or socket closes, upon which it returns null
             while ((line = br.readLine()) != null) {
 
-                // Handle: consume
+
                 Pattern consumePattern = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)\\s([a-z]+)");
                 Matcher consumeMatcher = consumePattern.matcher(line.trim());
+
+                Pattern sendPattern = Pattern.compile("send\\s(.+)\\s(.+)\\s(.+)");
+                Matcher sendMatcher = sendPattern.matcher(line.trim());
+
+                // Handle: consume
                 if (consumeMatcher.find()) {
                     final String topic = consumeMatcher.group(1);
                     final String group = consumeMatcher.group(2);
@@ -53,6 +60,21 @@ public class SocketWorker implements Runnable {
                 else if (line.trim().equals("commit")){
                     _consumer.commitOffsets();
                     sendLine("commit-ok");
+                }
+
+                // Handle: send <partitionId> <body>
+                else if (sendMatcher.find()) {
+                    final String topic       = sendMatcher.group(1);
+                    final String partitionId = sendMatcher.group(2);
+                    final String body        = sendMatcher.group(3);
+                    _producer = new KafkaProducer();
+                    try {
+                        _producer.send(topic, partitionId, body);
+                    } catch (ExecutionException e) {
+                        sendLine("send-fail exception " + e.getMessage());
+                    } catch (InterruptedException e) {
+                        sendLine("send-fail interrupted" + e.getMessage());
+                    }
                 }
 
                 else {

@@ -11,6 +11,7 @@ setTimeout(function() {
 }, 1000)
 
 client.on('data', function(data) {
+  console.log('data was', data)
   if (data === 'commit-ok\n')
     client.write('next\n');
   if (data.indexOf('msg') > -1) {
