@@ -32,22 +32,28 @@ public class SocketWorker implements Runnable {
         String line;
         try {
             // readLine blocks until line arrives or socket closes, upon which it returns null
+            // readLine will be return each line up until a line feed / carriage return,
+            // but will not including the line-termination character.
             while ((line = br.readLine()) != null) {
 
-
-                Pattern consumePattern = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)\\s([a-z]+)");
-                Matcher consumeMatcher = consumePattern.matcher(line.trim());
-
                 Pattern sendPattern = Pattern.compile("send\\s(.+)\\s(.+)\\s(.+)");
-                Matcher sendMatcher = sendPattern.matcher(line.trim());
+                Matcher sendMatcher = sendPattern.matcher(line);
 
-                // Handle: consume
-                if (consumeMatcher.find()) {
-                    final String topic = consumeMatcher.group(1);
-                    final String group = consumeMatcher.group(2);
-                    final KafkaConsumer.AutoOffsetReset reset = KafkaConsumer.AutoOffsetReset.valueOf(consumeMatcher.group(3));
-                    _consumer = new KafkaConsumer(topic, group, reset);
-                    sendLine("consume-started");
+                // Handle: consume <topic> <group> <offset-reset>
+                if (line.startsWith("consume")) {
+                    Pattern pattern = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)\\s(smallest|largest)");
+                    Matcher matcher = pattern.matcher(line);
+                    if (matcher.find()) {
+                        final String topic = matcher.group(1);
+                        final String group = matcher.group(2);
+                        final KafkaConsumer.AutoOffsetReset reset =
+                                KafkaConsumer.AutoOffsetReset.valueOf(matcher.group(3));
+                        _consumer = new KafkaConsumer(topic, group, reset);
+                        sendLine("consume-started");
+                    } else {
+                        sendLine("error command-invalid THe consume command expects three parameters separated by "+
+                                 "space; topic (a-z), consumer group (a-z), and offset reset ('smallest'/'largest')");
+                    }
                 }
 
                 // Handle: next
@@ -90,6 +96,12 @@ public class SocketWorker implements Runnable {
 
             }
         } catch (IOException e) {
+
+            if (e.getMessage() == "Connection Reset") {
+                // Happens during normal operation, when clients forcibly disconnect, ignore
+                return;
+            }
+
             System.out.println("SocketWorker error: Could not read line.");
             e.printStackTrace();
         }
