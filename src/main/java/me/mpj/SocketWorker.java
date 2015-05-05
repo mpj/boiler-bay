@@ -52,8 +52,14 @@ public class SocketWorker implements Runnable {
 
                 // Handle: next
                 else if (line.trim().equals("next")){
-                    final String msg = new String(_consumer.stream.iterator().next().message());
-                    sendLine("msg " + msg);
+                    if(_consumer != null) {
+                        final String msg = new String(_consumer.stream.iterator().next().message());
+                        sendLine("msg " + msg);
+                    } else {
+                        sendLine("error consume-not-started You need to start consuming and wait " +
+                                 "for consume-started before sending next");
+                    }
+
                 }
 
                 // Handle: commit
