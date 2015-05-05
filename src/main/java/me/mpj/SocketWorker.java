@@ -104,21 +104,23 @@ public class SocketWorker implements Runnable {
 
             System.out.println("SocketWorker error: Could not read line.");
             e.printStackTrace();
+        } finally {
+            // If we reach this line, it means that the socket has
+            // has closed, so shut down any consumer or producer
+            if (_consumer != null)
+                _consumer.shutdown();
+            if (_producer != null)
+                _producer.shutdown();
+
+            // Finally, ensure that socket is closed.
+            try {
+                if (!_socket.isClosed()) _socket.close();
+            } catch (IOException e) {
+                // Can't imagine us caring about this error
+            }
         }
 
-        // If we reach this line, it means that the socket has
-        // has closed, so shut down any consumer or producer
-        if (_consumer != null)
-            _consumer.shutdown();
-        if (_producer != null)
-            _producer.shutdown();
 
-        // Finally, ensure that socket is closed.
-        try {
-            if (!_socket.isClosed()) _socket.close();
-        } catch (IOException e) {
-            // Can't imagine us caring about this error
-        }
 
     }
 
