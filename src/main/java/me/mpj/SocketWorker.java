@@ -97,7 +97,7 @@ public class SocketWorker implements Runnable {
             }
         } catch (IOException e) {
 
-            if (e.getMessage() == "Connection Reset") {
+            if (e.getMessage().toLowerCase().contains("connection reset")) {
                 // Happens during normal operation, when clients forcibly disconnect, ignore
                 return;
             }
@@ -119,9 +119,6 @@ public class SocketWorker implements Runnable {
                 // Can't imagine us caring about this error
             }
         }
-
-
-
     }
 
     private void sendLine(String line) {
