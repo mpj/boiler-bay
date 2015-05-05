@@ -36,8 +36,6 @@ public class SocketWorker implements Runnable {
             // but will not including the line-termination character.
             while ((line = br.readLine()) != null) {
 
-                Pattern sendPattern = Pattern.compile("send\\s(.+)\\s(.+)\\s(.+)");
-                Matcher sendMatcher = sendPattern.matcher(line);
 
                 // Handle: consume <topic> <group> <offset-reset>
                 if (line.startsWith("consume")) {
@@ -51,7 +49,7 @@ public class SocketWorker implements Runnable {
                         _consumer = new KafkaConsumer(topic, group, reset);
                         sendLine("consume-started");
                     } else {
-                        sendLine("error command-invalid THe consume command expects three parameters separated by "+
+                        sendLine("error command-invalid The consume command expects three parameters separated by "+
                                  "space; topic (a-z), consumer group (a-z), and offset reset ('smallest'/'largest')");
                     }
                 }
@@ -65,7 +63,6 @@ public class SocketWorker implements Runnable {
                         sendLine("error consume-not-started You need to start consuming and wait " +
                                  "for consume-started before sending next");
                     }
-
                 }
 
                 // Handle: commit
@@ -74,22 +71,28 @@ public class SocketWorker implements Runnable {
                     sendLine("commit-ok");
                 }
 
-                // Handle: send <partitionId> <body>
-                else if (sendMatcher.find()) {
-                    final String topic       = sendMatcher.group(1);
-                    final String partitionId = sendMatcher.group(2);
-                    final String body        = sendMatcher.group(3);
-                    if(_producer == null)
-                        _producer = new KafkaProducer();
-                    try {
-                        _producer.send(topic, partitionId, body);
-                    } catch (ExecutionException e) {
-                        sendLine("send-fail exception " + e.getMessage());
-                    } catch (InterruptedException e) {
-                        sendLine("send-fail interrupted" + e.getMessage());
+                // Handle: send <topic> <partitionId> <body>
+                else if (line.startsWith("send") ) {
+                    Pattern pattern = Pattern.compile("send\\s([a-z]+)\\s(\\w+)\\s(.+)");
+                    Matcher matcher = pattern.matcher(line);
+                    if (matcher.find()) {
+                        final String topic = matcher.group(1);
+                        final String partitionId = matcher.group(2);
+                        final String body = matcher.group(3);
+                        if (_producer == null)
+                            _producer = new KafkaProducer();
+                        try {
+                            _producer.send(topic, partitionId, body);
+                        } catch (ExecutionException e) {
+                            sendLine("send-fail exception " + e.getMessage());
+                        } catch (InterruptedException e) {
+                            sendLine("send-fail interrupted" + e.getMessage());
+                        }
+                    } else {
+                        sendLine("error command-invalid The send command expects three parameters separated by "+
+                                "space; topic (a-z), partitionId (letter, number, underscore) and and body (any string).");
                     }
                 }
-
                 else {
                     sendLine("command-invalid");
                 }
