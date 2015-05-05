@@ -73,7 +73,8 @@ public class SocketWorker implements Runnable {
                     final String topic       = sendMatcher.group(1);
                     final String partitionId = sendMatcher.group(2);
                     final String body        = sendMatcher.group(3);
-                    _producer = new KafkaProducer();
+                    if(_producer == null)
+                        _producer = new KafkaProducer();
                     try {
                         _producer.send(topic, partitionId, body);
                     } catch (ExecutionException e) {
@@ -94,8 +95,11 @@ public class SocketWorker implements Runnable {
         }
 
         // If we reach this line, it means that the socket has
-        // has closed, so shut down the consumer.
-        _consumer.shutdown();
+        // has closed, so shut down any consumer or producer
+        if (_consumer != null)
+            _consumer.shutdown();
+        if (_producer != null)
+            _producer.shutdown();
 
         // Finally, ensure that socket is closed.
         try {
