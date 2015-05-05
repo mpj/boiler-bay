@@ -25,6 +25,8 @@ public class KafkaProducer {
     }
 
     public RecordMetadata send(String topic, String partitionKey, String body) throws ExecutionException, InterruptedException {
+        // We don't provide a partition integer to ProducerRecord, which makes the Kafka
+        // client pick the partition by hashing the partitionKey
         ProducerRecord<byte[], byte[]> record =
                 new ProducerRecord<>(topic, partitionKey.getBytes(), body.getBytes());
         final java.util.concurrent.Future<RecordMetadata> future = _producer.send(record);
