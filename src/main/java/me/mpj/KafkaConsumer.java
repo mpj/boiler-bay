@@ -53,7 +53,7 @@ public class KafkaConsumer {
     private ConsumerConfig makeConfig(String group, AutoOffsetReset reset) {
 
         final Properties props = new Properties();
-        props.put("zookeeper.connect", "192.168.99.100:49157");
+        props.put("zookeeper.connect", "zk:2181");
         props.put("group.id", group);
 
         // this property determines if the consumer starts from

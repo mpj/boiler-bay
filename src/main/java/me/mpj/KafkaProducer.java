@@ -14,7 +14,7 @@ public class KafkaProducer {
         java.util.Map<java.lang.String,java.lang.Object> configs = new HashMap<>();
 
         // kafka brokers
-        configs.put("bootstrap.servers", "192.168.99.100:49158,192.168.99.100:49159");
+        configs.put("bootstrap.servers", "kfk:9092,kfk:9093,kfk:9094");
 
         configs.put("key.serializer", org.apache.kafka.common.serialization.ByteArraySerializer.class);
         configs.put("value.serializer", org.apache.kafka.common.serialization.ByteArraySerializer.class);
