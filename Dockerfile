@@ -9,5 +9,5 @@ COPY . /app
 WORKDIR /app
 RUN ./gradlew install
 EXPOSE 4444
-RUN ./gradlew run
+CMD ./gradlew run
 
