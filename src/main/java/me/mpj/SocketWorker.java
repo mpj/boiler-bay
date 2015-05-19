@@ -29,6 +29,8 @@ public class SocketWorker implements Runnable {
         final InputStreamReader streamReader = new InputStreamReader(inputStream);
         BufferedReader br = new BufferedReader(streamReader);
 
+        sendLine("ready");
+
         String line;
         try {
             // readLine blocks until line arrives or socket closes, upon which it returns null
@@ -36,10 +38,9 @@ public class SocketWorker implements Runnable {
             // but will not including the line-termination character.
             while ((line = br.readLine()) != null) {
 
-
                 // Handle: consume <topic> <group> <offset-reset>
                 if (line.startsWith("consume")) {
-                    Pattern pattern = Pattern.compile("consume\\s([a-z]+)\\s([a-z]+)\\s(smallest|largest)");
+                    Pattern pattern = Pattern.compile("consume\\s([a-zA-Z0-9\\-]+)\\s([a-zA-Z0-9\\-]+)\\s(smallest|largest)");
                     Matcher matcher = pattern.matcher(line);
                     if (matcher.find()) {
                         final String topic = matcher.group(1);
@@ -50,7 +51,7 @@ public class SocketWorker implements Runnable {
                         sendLine("consume-started");
                     } else {
                         sendLine("error command-invalid The consume command expects three parameters separated by "+
-                                 "space; topic (a-z), consumer group (a-z), and offset reset ('smallest'/'largest')");
+                                 "space; topic (alphanumerical/dash), consumer group (alphanumerical/dash), and offset reset ('smallest'/'largest')");
                     }
                 }
 
