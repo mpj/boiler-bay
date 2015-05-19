@@ -65,6 +65,12 @@ public class KafkaConsumer {
         // http://stackoverflow.com/q/30005390/304262
         props.put("offsets.storage", "kafka");
 
+        // Don't delete stuff, just compact
+        props.put("log.cleanup.policy", "compact");
+
+
+
+
         // Boiler Bay always requires manual commits
         props.put("auto.commit.enable", "false");
 
