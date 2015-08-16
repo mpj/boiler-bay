@@ -64,7 +64,12 @@ public class SocketWorker implements Runnable {
 
                         // Committing on every message - with newer Kafka versions, offsets
                         // are stored in Kafka, not Zookeeper like before, so consumes
-                        // are less expensive nowadays.
+                        // are less expensive nowadays. It's still a bit expensive,
+                        // about 170 msgs/s vs 446msgs/s when not calling commit at all,
+                        // but not too bad.
+                        
+                        // This line will block until offsets are confirmed, see
+                        // http://stackoverflow.com/questions/30013116/does-commitoffsets-on-high-level-consumer-block
                         _consumer.commitOffsets();
 
                         final String msg = new String(_consumer.stream.iterator().next().message());
