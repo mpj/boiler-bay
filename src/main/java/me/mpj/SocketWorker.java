@@ -49,28 +49,32 @@ public class SocketWorker implements Runnable {
                                 KafkaConsumer.AutoOffsetReset.valueOf(matcher.group(3));
                         _consumer = new KafkaConsumer(topic, group, reset);
                         sendLine("consume-started");
+
+                        final String msg = new String(_consumer.stream.iterator().next().message());
+                        sendLine("msg " + msg);
                     } else {
                         sendLine("error command-invalid The consume command expects three parameters separated by "+
                                  "space; topic (alphanumerical/dash), consumer group (alphanumerical/dash), and offset reset ('smallest'/'largest')");
                     }
                 }
 
-                // Handle: next
-                else if (line.trim().equals("next")){
+                // Handle: ack
+                else if (line.trim().equals("ack")){
                     if(_consumer != null) {
+
+                        // Committing on every message - with newer Kafka versions, offsets
+                        // are stored in Kafka, not Zookeeper like before, so consumes
+                        // are less expensive nowadays.
+                        _consumer.commitOffsets();
+
                         final String msg = new String(_consumer.stream.iterator().next().message());
                         sendLine("msg " + msg);
                     } else {
                         sendLine("error consume-not-started You need to start consuming and wait " +
-                                 "for consume-started before sending next");
+                                 "for consume-started before sending ack");
                     }
                 }
 
-                // Handle: commit
-                else if (line.trim().equals("commit")){
-                    _consumer.commitOffsets();
-                    sendLine("commit-ok");
-                }
 
                 // Handle: send <topic> <partitionId> <body>
                 else if (line.startsWith("send") ) {
