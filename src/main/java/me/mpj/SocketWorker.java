@@ -40,7 +40,7 @@ public class SocketWorker implements Runnable {
 
                 // Handle: consume <topic> <group> <offset-reset>
                 if (line.startsWith("consume")) {
-                    Pattern pattern = Pattern.compile("consume\\s([a-zA-Z0-9\\-]+)\\s([a-zA-Z0-9\\-]+)\\s(smallest|largest)");
+                    Pattern pattern = Pattern.compile("consume\\s([a-zA-Z0-9_\\-]+)\\s([a-zA-Z0-9_\\-]+)\\s(smallest|largest)");
                     Matcher matcher = pattern.matcher(line);
                     if (matcher.find()) {
                         final String topic = matcher.group(1);
@@ -83,7 +83,7 @@ public class SocketWorker implements Runnable {
 
                 // Handle: send <topic> <partitionId> <body>
                 else if (line.startsWith("send") ) {
-                    Pattern pattern = Pattern.compile("send\\s([a-z]+)\\s(\\w+)\\s(.+)");
+                    Pattern pattern = Pattern.compile("send\\s([a-zA-Z0-9_\\-]+)\\s(\\w+)\\s(.+)");
                     Matcher matcher = pattern.matcher(line);
                     if (matcher.find()) {
                         final String topic = matcher.group(1);
